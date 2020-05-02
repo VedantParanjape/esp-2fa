@@ -10,6 +10,9 @@
 #include "sdkconfig.h"
 #include "u8g2_esp32_hal.h"
 #include "ntp.h"
+#include "totp.h"
+#include "nvs.h"
+
 // SDA - GPIO21
 #define PIN_SDA 21
 
@@ -56,6 +59,68 @@ void task_test_SSD1306i2c(char* buf) {
 
 }
 
+// void app_main()
+// {
+// 	time_t now;
+//     struct tm timeinfo;
+
+//     obtain_time();
+
+// 	setenv("TZ", "IST-05:30:00", 1);
+//     tzset();
+
+// 	time(&now);
+//     localtime_r(&now, &timeinfo);
+//     char *buffer = (char*)malloc(sizeof(char)*30);
+//     memset(buffer, '\0', 100);
+	
+// 	sprintf(buffer, "%d:%d:%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+// 	task_test_SSD1306i2c(buffer);
+// }
+
+// void app_main()
+// {
+//   char *key = "secretKey";
+//   char *payload = "Hello HMAC SHA 256!";
+//   unsigned char hmacResult[32];
+//   char message_hash[64];
+
+//   mbedtls_md_context_t ctx;
+//   mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+ 
+//   const size_t payloadLength = strlen(payload);
+//   const size_t keyLength = strlen(key);            
+ 
+//   mbedtls_md_init(&ctx);
+//   mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
+//   mbedtls_md_hmac_starts(&ctx, (const unsigned char *) key, keyLength);
+//   mbedtls_md_hmac_update(&ctx, (const unsigned char *) payload, payloadLength);
+//   mbedtls_md_hmac_finish(&ctx, hmacResult);
+//   mbedtls_md_free(&ctx);
+ 
+//   for(int i= 0; i< sizeof(hmacResult); i++){
+//     char str[3];
+ 
+//     sprintf(str, "%02x", (int)hmacResult[i]);
+//     strcat(message_hash, str);
+//   }
+
+//   	ESP_LOGI("hmac", "%s", message_hash);
+
+// }
+int DIGITS_POWER[] = {1,10,100,1000,10000,100000,1000000,10000000,100000000};
+
+int truncate_totp(unsigned char *hmac, int N)
+{
+    // uint64_t O = least_four_significant_bits_hmac;
+    int O = ((int)hmac[19] & 0x0f);
+
+    int bin_code = (((int)hmac[O] & 0x7f) << 24) | (((int)hmac[O+1] & 0xff) << 16) | (((int)hmac[O+2] & 0xff) << 8) | (((int)hmac[O+3] & 0xff));
+    int token = bin_code % DIGITS_POWER[N];
+    return token;
+}
+
 void app_main()
 {
 	time_t now;
@@ -67,11 +132,30 @@ void app_main()
     tzset();
 
 	time(&now);
-    localtime_r(&now, &timeinfo);
-    char *buffer = (char*)malloc(sizeof(char)*30);
-    memset(buffer, '\0', 100);
-	
-	sprintf(buffer, "%d:%d:%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    ESP_LOGI("time", "%d", (unsigned)time(&now));
 
-	task_test_SSD1306i2c(buffer);
+	unsigned char res[64];
+	char *key = NULL;
+
+	get_from_nvs(&key);
+	save_to_nvs("693633723433736c7a7a7a357437336332666267336f6779706d6969627368336376707a6761787a3373747478636569627633716c326e71");
+	
+	if (key == NULL)
+	{
+		save_to_nvs("693633723433736c7a7a7a357437336332666267336f6779706d6969627368336376707a6761787a3373747478636569627633716c326e71");
+		get_from_nvs(&key);
+	}
+
+	while(1)
+	{
+		totp_init(MBEDTLS_MD_SHA1);
+		ESP_LOGI("time", "%d", ((unsigned)time(NULL))/30);
+		totp_generate(key, ((unsigned)time(NULL))/30, res);
+
+		ESP_LOGI("hmac", "%d", truncate_totp(res, 6));
+		totp_free();
+
+		vTaskDelay(100);
+		memset(res, '\0', 64);
+	}
 }
