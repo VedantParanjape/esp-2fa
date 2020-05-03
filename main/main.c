@@ -22,10 +22,6 @@ void app_main()
     rtc_ext_init();
     obtain_time();
 
-	setenv("TZ", "IST-05:30:00", 1);
-    tzset();
-
-	time(&now);
     ESP_LOGI("time", "%d", (unsigned)time(&now));
 
 	char res[10];

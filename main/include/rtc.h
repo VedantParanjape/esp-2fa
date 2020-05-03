@@ -8,6 +8,7 @@
 #include <ds1307.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define SDA_GPIO 5
 #define SCL_GPIO 18
