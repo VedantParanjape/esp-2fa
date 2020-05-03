@@ -1,53 +1,57 @@
+#include <driver/gpio.h>
+#include <driver/spi_master.h>
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <stdio.h>
+#include <string.h>
+#include <u8g2.h>
+
+#include "sdkconfig.h"
+#include "u8g2_esp32_hal.h"
 #include "ntp.h"
+#include "totp.h"
+#include "nvs.h"
 #include "display.h"
+#include "rtc.h"
 
 void app_main()
 {
-    time_t now;
-    struct tm timeinfo;
-
+	time_t now;
+    display_init();
+    rtc_ext_init();
     obtain_time();
-    init_display(&display);
-    setenv("TZ", "IST-05:30:00", 1);
+
+	setenv("TZ", "IST-05:30:00", 1);
     tzset();
 
-    SSD1306_SetContrast(&display, 0xFF);
-    while (1)
-    {
-        clear_display(&display);
+	time(&now);
+    ESP_LOGI("time", "%d", (unsigned)time(&now));
 
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        char *buffer = (char*)malloc(sizeof(char)*30);
-        memset(buffer, '\0', 100);
-        
-        if (timeinfo.tm_min < 10 && timeinfo.tm_sec < 10)
-        {
-            sprintf(buffer, "%d:0%d:0%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        }
-        else if(timeinfo.tm_min > 10 && timeinfo.tm_sec < 10)
-        {
-            sprintf(buffer, "%d:%d:0%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        }
-        else if(timeinfo.tm_min < 10 && timeinfo.tm_sec > 10)
-        {
-            sprintf(buffer, "%d:0%d:%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        }
-        else
-        {
-            sprintf(buffer, "%d:%d:%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        }
-        
-        set_font_display(&display, &Font_droid_sans_fallback_24x28);
-        write_display(&display, TextAnchor_North ,buffer);
-        
-        sprintf(buffer, "%d/%d/%d", timeinfo.tm_mday, timeinfo.tm_mon, timeinfo.tm_year+1900);
-        set_font_display(&display, &Font_droid_sans_fallback_11x13);
-        write_display(&display, TextAnchor_Center, "Google");
+	char res[10];
+	char *key = NULL;
 
+	get_from_nvs(&key);
+	save_to_nvs("donikc64w6qaqjnrezzheynhsoj5fgj4q63gjn5kedqw7k5n5i2efkr5");
+	
+	if (key == NULL)
+	{
+		save_to_nvs("donikc64w6qaqjnrezzheynhsoj5fgj4q63gjn5kedqw7k5n5i2efkr5");
+		get_from_nvs(&key);
+	}
+	
+	while(1)
+	{
+		// get_from_nvs(&key);
+		totp_init(MBEDTLS_MD_SHA1);
+		// ESP_LOGI("time", "%d", ((unsigned)time(NULL))/30);
+		totp_generate(key, ((unsigned)time(NULL))/30, 6, res);
 
-        // ESP_LOGI("main app", "%d:%d:%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-        vTaskDelay(100/portTICK_PERIOD_MS);
-        free((void*)buffer);
-    }
+	
+		ESP_LOGI("hmac", "%s: %s", key, res);
+		totp_free();
+		display_write(res);
+		// task_test_SSD1306i2c(res);
+		vTaskDelay(100);
+	}
 }

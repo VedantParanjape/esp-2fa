@@ -12,7 +12,7 @@
 #include "ntp.h"
 #include "totp.h"
 #include "nvs.h"
-
+#include "display.h"
 // SDA - GPIO21
 #define PIN_SDA 21
 
@@ -109,22 +109,10 @@ void task_test_SSD1306i2c(char* buf) {
 //   	ESP_LOGI("hmac", "%s", message_hash);
 
 // }
-int DIGITS_POWER[] = {1,10,100,1000,10000,100000,1000000,10000000,100000000};
-
-int truncate_totp(unsigned char *hmac, int N)
-{
-    // uint64_t O = least_four_significant_bits_hmac;
-    int O = ((int)hmac[19] & 0x0f);
-
-    int bin_code = (((int)hmac[O] & 0x7f) << 24) | (((int)hmac[O+1] & 0xff) << 16) | (((int)hmac[O+2] & 0xff) << 8) | (((int)hmac[O+3] & 0xff));
-    int token = bin_code % DIGITS_POWER[N];
-    return token;
-}
 
 void app_main()
 {
 	time_t now;
-    struct tm timeinfo;
 
     obtain_time();
 
@@ -134,28 +122,31 @@ void app_main()
 	time(&now);
     ESP_LOGI("time", "%d", (unsigned)time(&now));
 
-	unsigned char res[64];
+	char res[10];
 	char *key = NULL;
 
 	get_from_nvs(&key);
-	save_to_nvs("693633723433736c7a7a7a357437336332666267336f6779706d6969627368336376707a6761787a3373747478636569627633716c326e71");
+	save_to_nvs("yfloo4rknli2o227obq33hbph4ygfq4gvkn5su3664x6a4lohxlhmg7y");
 	
 	if (key == NULL)
 	{
-		save_to_nvs("693633723433736c7a7a7a357437336332666267336f6779706d6969627368336376707a6761787a3373747478636569627633716c326e71");
+		save_to_nvs("yfloo4rknli2o227obq33hbph4ygfq4gvkn5su3664x6a4lohxlhmg7y");
 		get_from_nvs(&key);
 	}
+	display_init();
 
 	while(1)
 	{
+		// get_from_nvs(&key);
 		totp_init(MBEDTLS_MD_SHA1);
-		ESP_LOGI("time", "%d", ((unsigned)time(NULL))/30);
-		totp_generate(key, ((unsigned)time(NULL))/30, res);
+		// ESP_LOGI("time", "%d", ((unsigned)time(NULL))/30);
+		totp_generate(key, ((unsigned)time(NULL))/30, 6, res);
 
-		ESP_LOGI("hmac", "%d", truncate_totp(res, 6));
+	
+		ESP_LOGI("hmac", "%s: %s", key, res);
 		totp_free();
-
+		display_write(res);
+		// task_test_SSD1306i2c(res);
 		vTaskDelay(100);
-		memset(res, '\0', 64);
 	}
 }

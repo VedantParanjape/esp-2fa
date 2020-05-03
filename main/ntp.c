@@ -37,10 +37,11 @@ void initialize_sntp(void)
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, "pool.ntp.org");
     sntp_set_time_sync_notification_cb(time_sync_notification_cb);
-   sntp_init();
+    sntp_init();
 }
 
 void time_sync_notification_cb(struct timeval *tv)
 {
     ESP_LOGI(TAG, "Notification of a time synchronization event");
+    rtc_ext_set_time(time(NULL));
 }

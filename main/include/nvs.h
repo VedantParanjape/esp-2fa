@@ -1,3 +1,6 @@
+#ifndef NVS_H
+#define NVS_H
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -7,3 +10,5 @@
 
 void save_to_nvs(char* message);
 void get_from_nvs(char** value);
+
+#endif
