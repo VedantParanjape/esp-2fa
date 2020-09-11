@@ -14,15 +14,11 @@
 #include "nvs.h"
 #include "display.h"
 #include "rtc.h"
+#include "sync.h"
 
-void app_main()
+void authenticator()
 {
-	time_t now;
-    display_init();
-    rtc_ext_init();
-    obtain_time();
-
-    ESP_LOGI("time", "%d", (unsigned)time(&now));
+	display_init();
 
 	char res[10];
 	char *key = NULL;
@@ -38,16 +34,19 @@ void app_main()
 	
 	while(1)
 	{
-		// get_from_nvs(&key);
 		totp_init(MBEDTLS_MD_SHA1);
-		// ESP_LOGI("time", "%d", ((unsigned)time(NULL))/30);
-		totp_generate(key, ((unsigned)time(NULL))/30, 6, res);
-
-	
-		ESP_LOGI("hmac", "%s: %s", key, res);
+		totp_generate(key, ((unsigned)time(NULL))/30, 6, res);	
+		// ESP_LOGI("hmac", "%s: %s", key, res);
 		totp_free();
+
 		display_write(res);
-		// task_test_SSD1306i2c(res);
 		vTaskDelay(100);
 	}
+}
+
+void app_main()
+{
+	xTaskCreatePinnedToCore(sync_time, "sync_time", 4096, NULL, 1, NULL, 0);
+	vTaskDelay(1000 / portTICK_PERIOD_MS);	
+    xTaskCreatePinnedToCore(authenticator, "2fa", 4096, NULL, 2, NULL, 1);
 }

@@ -8,7 +8,7 @@ static const int8_t base32_vals[256] = {
     //       - the numeral zero as the letter "O" as in oscar
     //       - the numeral one as the letter "L" as in lima
     //       - the numeral eight as the letter "B" as in bravo
-    // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
+  // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0x00
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0x10
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0x20

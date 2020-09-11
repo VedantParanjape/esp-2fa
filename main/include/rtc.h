@@ -16,6 +16,5 @@
 void rtc_ext_init();
 void rtc_ext_set_time(time_t time);
 time_t rtc_ext_get_time();
-void rtc_periodic_update();
 
 #endif

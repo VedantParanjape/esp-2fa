@@ -17,7 +17,7 @@
 #include "esp_sntp.h"
 #include "rtc.h"
 
-void obtain_time(void);
+void ntp_get_time(void);
 void initialize_sntp(void);
 void time_sync_notification_cb(struct timeval *tv);
 
